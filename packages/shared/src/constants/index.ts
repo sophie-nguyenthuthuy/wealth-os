@@ -19,7 +19,10 @@ export const REMITTANCE_QUOTE_TTL_SECONDS = 90;
 export const MAX_REFRESH_TOKEN_PER_USER = 10;
 export const BCRYPT_MIN_ROUNDS = 10;
 
-export const KYC_TIER_LIMITS_VND: Record<'TIER_0' | 'TIER_1' | 'TIER_2', { dailyOut: number; monthlyOut: number }> = {
+export const KYC_TIER_LIMITS_VND: Record<
+  'TIER_0' | 'TIER_1' | 'TIER_2',
+  { dailyOut: number; monthlyOut: number }
+> = {
   TIER_0: { dailyOut: 0, monthlyOut: 0 },
   TIER_1: { dailyOut: 20_000_000, monthlyOut: 100_000_000 },
   TIER_2: { dailyOut: 100_000_000, monthlyOut: 500_000_000 },

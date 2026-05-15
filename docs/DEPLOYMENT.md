@@ -2,12 +2,12 @@
 
 ## Environments
 
-| Env | Purpose | Data | Audience |
-| --- | --- | --- | --- |
-| **local** | Developer laptops | Docker volumes, synthetic | Engineers |
-| **dev** | Shared sandbox, breakable | Synthetic, reset weekly | Engineering + design |
-| **staging** | Pre-release, mirrors prod topology | Anonymized snapshot | QA, partners, regulators |
-| **prod** | Live customer traffic | Real | Customers |
+| Env         | Purpose                            | Data                      | Audience                 |
+| ----------- | ---------------------------------- | ------------------------- | ------------------------ |
+| **local**   | Developer laptops                  | Docker volumes, synthetic | Engineers                |
+| **dev**     | Shared sandbox, breakable          | Synthetic, reset weekly   | Engineering + design     |
+| **staging** | Pre-release, mirrors prod topology | Anonymized snapshot       | QA, partners, regulators |
+| **prod**    | Live customer traffic              | Real                      | Customers                |
 
 Each environment maps to a separate AWS account (or VPC) and a separate Postgres instance. No environment ever talks to another environment's data.
 
@@ -51,7 +51,7 @@ Final image size target: < 250 MB. Healthcheck hits `/v1/health` every 30s.
 
 ## Migrations
 
-We use Prisma migrations, applied with `prisma migrate deploy` in a one-shot job that runs *before* a new API task is allowed to take traffic.
+We use Prisma migrations, applied with `prisma migrate deploy` in a one-shot job that runs _before_ a new API task is allowed to take traffic.
 
 - All migrations must be **backwards compatible** with the previous deployed API version. Two-step migrations:
   1. ship code that tolerates both shapes
@@ -82,11 +82,11 @@ If a migration must be reverted, do not run `prisma migrate down` blindly — cr
 
 ## SLOs (target)
 
-| Surface | Latency p95 | Availability |
-| --- | --- | --- |
-| `/v1/auth/*` | < 300 ms | 99.9% |
-| `/v1/remittance/quote` | < 500 ms | 99.9% |
-| `/v1/remittance/confirm` | < 800 ms (includes DB transaction) | 99.95% |
-| `/v1/health` | < 50 ms | 99.99% |
+| Surface                  | Latency p95                        | Availability |
+| ------------------------ | ---------------------------------- | ------------ |
+| `/v1/auth/*`             | < 300 ms                           | 99.9%        |
+| `/v1/remittance/quote`   | < 500 ms                           | 99.9%        |
+| `/v1/remittance/confirm` | < 800 ms (includes DB transaction) | 99.95%       |
+| `/v1/health`             | < 50 ms                            | 99.99%       |
 
 Error budget burn alerts and oncall rotation: tracked outside this repo.

@@ -20,7 +20,7 @@ apps/admin/
 
 ## Access model
 
-Admin users are *not* in the `users` table. A separate `admin_users` table with role-based access controls (planned: KYC_REVIEWER, COMPLIANCE_OFFICER, OPS, SUPER_ADMIN) keeps audit trails clean and prevents privilege confusion.
+Admin users are _not_ in the `users` table. A separate `admin_users` table with role-based access controls (planned: KYC_REVIEWER, COMPLIANCE_OFFICER, OPS, SUPER_ADMIN) keeps audit trails clean and prevents privilege confusion.
 
 ## Not yet scaffolded
 

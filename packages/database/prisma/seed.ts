@@ -1,5 +1,11 @@
 /* eslint-disable no-console */
-import { PrismaClient, Country, Currency, FundType, InsuranceProductCategory } from '@prisma/client';
+import {
+  PrismaClient,
+  Country,
+  Currency,
+  FundType,
+  InsuranceProductCategory,
+} from '@prisma/client';
 
 const prisma = new PrismaClient();
 

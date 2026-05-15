@@ -1,10 +1,4 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { Prisma } from '@wealth-os/database';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { Logger } from 'nestjs-pino';
@@ -31,10 +25,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (status >= 500) {
       this.logger.error({ err: exception, path: req.url, correlationId: req.id }, body.message);
     } else if (status >= 400) {
-      this.logger.warn(
-        { code: body.code, path: req.url, correlationId: req.id },
-        body.message,
-      );
+      this.logger.warn({ code: body.code, path: req.url, correlationId: req.id }, body.message);
     }
 
     res.status(status).send({ error: body });
@@ -45,9 +36,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const response = exception.getResponse();
       const status = exception.getStatus();
       const message =
-        typeof response === 'string' ? response : (response as { message?: string }).message ?? exception.message;
+        typeof response === 'string'
+          ? response
+          : ((response as { message?: string }).message ?? exception.message);
       const details =
-        typeof response === 'object' && response !== null ? (response as Record<string, unknown>) : undefined;
+        typeof response === 'object' && response !== null
+          ? (response as Record<string, unknown>)
+          : undefined;
       return {
         status,
         body: {
@@ -75,7 +70,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     };
   }
 
-  private mapPrismaKnownError(err: Prisma.PrismaClientKnownRequestError): { status: number; body: ErrorBody } {
+  private mapPrismaKnownError(err: Prisma.PrismaClientKnownRequestError): {
+    status: number;
+    body: ErrorBody;
+  } {
     switch (err.code) {
       case 'P2002':
         return {

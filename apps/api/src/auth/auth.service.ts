@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@wealth-os/database';
@@ -81,7 +77,10 @@ export class AuthService {
     });
     if (!user) {
       // Constant-time-ish: still hash to avoid leaking existence via timing.
-      await bcrypt.compare(dto.password, '$2b$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinval');
+      await bcrypt.compare(
+        dto.password,
+        '$2b$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinval',
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
@@ -107,7 +106,10 @@ export class AuthService {
     return this.issueTokens(user.id, user.phoneE164, ctx);
   }
 
-  async refresh(refreshToken: string, ctx: { ip?: string; userAgent?: string }): Promise<AuthTokens> {
+  async refresh(
+    refreshToken: string,
+    ctx: { ip?: string; userAgent?: string },
+  ): Promise<AuthTokens> {
     const tokenHash = this.hashToken(refreshToken);
     const record = await this.prisma.refreshToken.findUnique({
       where: { tokenHash },

@@ -12,10 +12,7 @@ export class FxController {
   @Public()
   @Get('rate')
   @ApiOperation({ summary: 'Latest indicative FX rate for a corridor' })
-  async getRate(
-    @Query('base') base: Currency,
-    @Query('quote') quote: Currency,
-  ) {
+  async getRate(@Query('base') base: Currency, @Query('quote') quote: Currency) {
     const rate = await this.fx.getLatestRate(base, quote);
     return {
       base: rate.base,

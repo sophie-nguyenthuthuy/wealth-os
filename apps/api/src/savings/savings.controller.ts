@@ -31,10 +31,7 @@ export class SavingsController {
 
   @Delete('rules/:id')
   @ApiOperation({ summary: 'Deactivate (soft-delete) an auto-savings rule' })
-  async deactivate(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async deactivate(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.savings.deactivateRule(user.id, id);
     return { ok: true };
   }

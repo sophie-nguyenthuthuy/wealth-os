@@ -14,7 +14,7 @@ export class UsersService {
       },
     });
     if (!user) throw new NotFoundException('User not found');
-    const { passwordHash: _ph, ...safe } = user;
+    const { passwordHash: _passwordHash, ...safe } = user;
     return safe;
   }
 }

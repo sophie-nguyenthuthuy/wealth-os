@@ -34,18 +34,18 @@
 
 Each NestJS module owns one bounded context and exposes a thin service interface:
 
-| Module | Responsibility | Owns |
-| --- | --- | --- |
-| `auth` | Registration, login, refresh-token rotation, password storage | `users`, `refresh_tokens` (write), `audit_events` (write) |
-| `users` | Read-only "me" surface for the app | `users` (read) |
-| `workers` | Worker-specific profile (visa, employer, union) | `worker_profiles`, `unions` |
-| `remittance` | Quoting, authorization, settlement orchestration | `remittances`, `remittance_corridors`, ledger writes |
-| `savings` | Multi-currency wallets, auto-savings rules | `wallets`, `auto_savings_rules`, ledger writes |
-| `investments` | Fund catalog, NAVs, buy/sell orders, holdings | `funds`, `fund_navs`, `investment_orders`, `fund_holdings` |
-| `insurance` | Product catalog, policy lifecycle | `insurance_products`, `insurance_policies` |
-| `fx` | FX rate ingestion, quote pricing | `fx_rate_snapshots` |
-| `notifications` | Outbound push / SMS / email queue | `notifications` |
-| `audit` | Append-only audit ledger | `audit_events` |
+| Module          | Responsibility                                                | Owns                                                       |
+| --------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| `auth`          | Registration, login, refresh-token rotation, password storage | `users`, `refresh_tokens` (write), `audit_events` (write)  |
+| `users`         | Read-only "me" surface for the app                            | `users` (read)                                             |
+| `workers`       | Worker-specific profile (visa, employer, union)               | `worker_profiles`, `unions`                                |
+| `remittance`    | Quoting, authorization, settlement orchestration              | `remittances`, `remittance_corridors`, ledger writes       |
+| `savings`       | Multi-currency wallets, auto-savings rules                    | `wallets`, `auto_savings_rules`, ledger writes             |
+| `investments`   | Fund catalog, NAVs, buy/sell orders, holdings                 | `funds`, `fund_navs`, `investment_orders`, `fund_holdings` |
+| `insurance`     | Product catalog, policy lifecycle                             | `insurance_products`, `insurance_policies`                 |
+| `fx`            | FX rate ingestion, quote pricing                              | `fx_rate_snapshots`                                        |
+| `notifications` | Outbound push / SMS / email queue                             | `notifications`                                            |
+| `audit`         | Append-only audit ledger                                      | `audit_events`                                             |
 
 Cross-module dependencies are explicit and one-directional. `remittance` may depend on `fx`. Nothing depends on `auth` at the service level — auth is enforced by the global `JwtAuthGuard`.
 

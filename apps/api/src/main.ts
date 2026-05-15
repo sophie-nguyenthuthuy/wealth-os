@@ -1,3 +1,5 @@
+import type { IncomingMessage } from 'node:http';
+import type { Http2ServerRequest } from 'node:http2';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -14,7 +16,11 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter({
       trustProxy: true,
-      genReqId: (req) => (req.headers['x-correlation-id'] as string) ?? crypto.randomUUID(),
+      genReqId: (req: IncomingMessage | Http2ServerRequest) => {
+        const header = req.headers['x-correlation-id'];
+        const fromHeader = Array.isArray(header) ? header[0] : header;
+        return fromHeader ?? crypto.randomUUID();
+      },
     }),
     { bufferLogs: true },
   );

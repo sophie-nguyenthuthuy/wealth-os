@@ -60,21 +60,21 @@ API will be live at `http://localhost:3000` with Swagger UI at `/docs`.
 
 ## Tech stack
 
-| Layer | Choice | Why |
-| --- | --- | --- |
-| Runtime | Node.js 20 LTS | Long-term support through 2026 |
-| Language | TypeScript 5.x (strict) | Type safety at finance scale |
-| API framework | NestJS 10 | Module isolation, DI, mature ecosystem |
-| ORM | Prisma 5 | Type-safe migrations, Decimal for money |
-| DB | PostgreSQL 16 | ACID + JSONB + partitioning for ledger |
-| Cache / queue | Redis 7 + BullMQ | Async settlement, FX polling, payouts |
-| Auth | JWT access + rotating refresh | Mobile-first, revocable |
-| Logging | Pino | Structured JSON, low overhead |
-| Validation | class-validator + class-transformer | Native NestJS pattern |
-| Tests | Jest + Supertest | Unit + e2e |
-| Build | Turborepo + pnpm workspaces | Monorepo caching |
-| Container | Multi-stage Docker | Distroless final image |
-| CI | GitHub Actions | Lint, test, build, scan |
+| Layer         | Choice                              | Why                                     |
+| ------------- | ----------------------------------- | --------------------------------------- |
+| Runtime       | Node.js 20 LTS                      | Long-term support through 2026          |
+| Language      | TypeScript 5.x (strict)             | Type safety at finance scale            |
+| API framework | NestJS 10                           | Module isolation, DI, mature ecosystem  |
+| ORM           | Prisma 5                            | Type-safe migrations, Decimal for money |
+| DB            | PostgreSQL 16                       | ACID + JSONB + partitioning for ledger  |
+| Cache / queue | Redis 7 + BullMQ                    | Async settlement, FX polling, payouts   |
+| Auth          | JWT access + rotating refresh       | Mobile-first, revocable                 |
+| Logging       | Pino                                | Structured JSON, low overhead           |
+| Validation    | class-validator + class-transformer | Native NestJS pattern                   |
+| Tests         | Jest + Supertest                    | Unit + e2e                              |
+| Build         | Turborepo + pnpm workspaces         | Monorepo caching                        |
+| Container     | Multi-stage Docker                  | Distroless final image                  |
+| CI            | GitHub Actions                      | Lint, test, build, scan                 |
 
 ---
 
