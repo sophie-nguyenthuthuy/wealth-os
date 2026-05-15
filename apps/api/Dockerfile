@@ -9,28 +9,30 @@ WORKDIR /repo
 
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 
-# Copy lockfile + workspace manifests + prisma schema BEFORE install so that
-# @prisma/client's postinstall can find the schema and generate the typed
-# client on the first pass (avoids stub-client mismatches downstream).
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json ./
-COPY apps/api/package.json ./apps/api/
-COPY packages/database/package.json ./packages/database/
-COPY packages/database/prisma ./packages/database/prisma
-COPY packages/shared/package.json ./packages/shared/
-
-RUN pnpm install --frozen-lockfile
-
-# Now bring in the rest of the source.
+# Bring the whole repo in first; .dockerignore excludes node_modules / dist.
 COPY . .
 
-# Regenerate to be safe (idempotent), then build packages in topological order.
-RUN pnpm --filter @wealth-os/database prisma:generate \
- && pnpm --filter @wealth-os/shared build \
+# Install with the schema present so the typed Prisma client is available.
+RUN pnpm install --frozen-lockfile
+
+# Explicit generate (the @prisma/client postinstall can't find the schema in
+# a monorepo because it runs from its own package dir).
+RUN pnpm --filter @wealth-os/database prisma:generate
+
+# Build in topological order (shared → database → api).
+RUN pnpm --filter @wealth-os/shared build \
  && pnpm --filter @wealth-os/database build \
  && pnpm --filter @wealth-os/api build
 
-# Produce a minimal, production-only deployment of the API into /deploy.
+# Self-contained, production-only app tree.
 RUN pnpm --filter @wealth-os/api --prod deploy /deploy
+
+# Regenerate the Prisma client inside /deploy. pnpm deploy copies the
+# @prisma/client package itself but not the sibling .prisma/ directory
+# where `prisma generate` writes the typed runtime client.
+RUN cd /deploy && \
+    pnpm --package=prisma@5.18.0 dlx prisma generate \
+      --schema=node_modules/@wealth-os/database/prisma/schema.prisma
 
 # ---- Stage 2: production runner ----
 FROM node:20.11-alpine AS runner

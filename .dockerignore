@@ -5,6 +5,7 @@
 **/.next
 **/coverage
 **/.git
+**/*.tsbuildinfo
 **/.env
 **/.env.local
 **/*.log
