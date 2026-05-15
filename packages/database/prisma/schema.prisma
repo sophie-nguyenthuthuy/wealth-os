@@ -1,0 +1,626 @@
+// =============================================================================
+// Wealth OS — Prisma schema
+//
+// Money is stored as Decimal(20, 4) in minor-unit-agnostic form. All
+// monetary amounts MUST carry an ISO-4217 currency code. FX conversions
+// are recorded with their source rate snapshot.
+//
+// Every state-changing entity has audit fields. Soft deletes via deletedAt.
+// =============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto, citext]
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum Country {
+  VN
+  JP
+  KR
+  TW
+}
+
+enum Currency {
+  VND
+  JPY
+  KRW
+  TWD
+  USD
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum KycLevel {
+  TIER_0 // phone-verified only, view-only
+  TIER_1 // ID verified, low-cap transactions
+  TIER_2 // ID + selfie + address, full limits
+}
+
+enum VisaType {
+  TECHNICAL_INTERN
+  SKILLED_WORKER
+  EPS_E9
+  TAIWAN_CLA
+  OTHER
+}
+
+enum WalletKind {
+  PRIMARY        // host-country payroll wallet
+  SAVINGS        // ring-fenced sub-wallet
+  INVESTMENT_CASH
+  INSURANCE_PREMIUM
+}
+
+enum LedgerDirection {
+  CREDIT
+  DEBIT
+}
+
+enum LedgerEntryType {
+  REMITTANCE_OUT
+  REMITTANCE_IN
+  PAYROLL_DEPOSIT
+  AUTO_SAVINGS_SWEEP
+  FUND_BUY
+  FUND_SELL
+  INSURANCE_PREMIUM
+  INSURANCE_PAYOUT
+  FEE
+  FX_ADJUSTMENT
+  ADJUSTMENT
+}
+
+enum RemittanceStatus {
+  CREATED
+  QUOTED
+  AUTHORIZED
+  SUBMITTED_TO_PARTNER
+  PARTNER_ACCEPTED
+  SETTLED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum AutoSavingsTrigger {
+  PAYROLL_DEPOSIT
+  CALENDAR_WEEKLY
+  CALENDAR_MONTHLY
+}
+
+enum FundType {
+  EQUITY
+  BALANCED
+  BOND
+  MONEY_MARKET
+}
+
+enum InvestmentOrderType {
+  BUY
+  SELL
+}
+
+enum InvestmentOrderStatus {
+  CREATED
+  SUBMITTED
+  ACCEPTED
+  FILLED
+  REJECTED
+  CANCELLED
+}
+
+enum InsuranceProductCategory {
+  FAMILY_HEALTH
+  ACCIDENT
+  CRITICAL_ILLNESS
+}
+
+enum InsurancePolicyStatus {
+  QUOTED
+  ACTIVE
+  LAPSED
+  CANCELLED
+  EXPIRED
+  CLAIM_PENDING
+}
+
+enum NotificationChannel {
+  PUSH
+  SMS
+  EMAIL
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+// -----------------------------------------------------------------------------
+// Identity
+// -----------------------------------------------------------------------------
+
+model User {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String?    @unique @db.Citext
+  phoneE164       String     @unique @map("phone_e164")
+  passwordHash    String     @map("password_hash")
+  locale          String     @default("vi-VN")
+  status          UserStatus @default(PENDING_VERIFICATION)
+  mfaEnabled      Boolean    @default(false) @map("mfa_enabled")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  deletedAt       DateTime?  @map("deleted_at")
+
+  workerProfile   WorkerProfile?
+  refreshTokens   RefreshToken[]
+  wallets         Wallet[]
+  remittances     Remittance[]
+  autoSavingsRules AutoSavingsRule[]
+  investmentOrders InvestmentOrder[]
+  holdings        FundHolding[]
+  policies        InsurancePolicy[]
+  beneficiaries   Beneficiary[]
+  notifications   Notification[]
+  auditEvents     AuditEvent[]
+  kycRecords      KycRecord[]
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  tokenHash   String   @unique @map("token_hash")
+  deviceId    String?  @map("device_id")
+  userAgent   String?  @map("user_agent")
+  ipAddress   String?  @map("ip_address")
+  expiresAt   DateTime @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  replacedById String?  @map("replaced_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model WorkerProfile {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String    @unique @map("user_id") @db.Uuid
+  fullName          String    @map("full_name")
+  dateOfBirth       DateTime  @map("date_of_birth") @db.Date
+  hometownProvince  String    @map("hometown_province")
+  hostCountry       Country   @map("host_country")
+  visaType          VisaType  @map("visa_type")
+  visaExpiresAt     DateTime? @map("visa_expires_at") @db.Date
+  employerName      String?   @map("employer_name")
+  unionId           String?   @map("union_id") @db.Uuid
+  arrivedAt         DateTime? @map("arrived_at") @db.Date
+  expectedReturnAt  DateTime? @map("expected_return_at") @db.Date
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  union             Union?    @relation(fields: [unionId], references: [id])
+
+  @@index([hostCountry, visaType])
+  @@map("worker_profiles")
+}
+
+model Union {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  country       Country
+  contactEmail  String?   @map("contact_email")
+  contactPhone  String?   @map("contact_phone")
+  partnershipStartedAt DateTime? @map("partnership_started_at") @db.Date
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  workers       WorkerProfile[]
+
+  @@unique([name, country])
+  @@map("unions")
+}
+
+model KycRecord {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  level           KycLevel
+  status          KycStatus @default(PENDING_REVIEW)
+  documentType    String?   @map("document_type")
+  documentNumber  String?   @map("document_number")
+  providerRef     String?   @map("provider_ref")
+  payload         Json?
+  rejectionReason String?   @map("rejection_reason")
+  reviewedBy      String?   @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime? @map("reviewed_at")
+  expiresAt       DateTime? @map("expires_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("kyc_records")
+}
+
+model Beneficiary {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  fullName      String   @map("full_name")
+  relationship  String
+  phoneE164     String?  @map("phone_e164")
+  nationalIdLast4 String? @map("national_id_last4")
+  // Payout rails in VN. Either bank account OR e-wallet alias.
+  bankCode      String?  @map("bank_code")
+  bankAccount   String?  @map("bank_account")
+  eWalletProvider String? @map("ewallet_provider")
+  eWalletAlias  String?  @map("ewallet_alias")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  remittances   Remittance[]
+  policies      InsurancePolicy[]
+
+  @@index([userId, deletedAt])
+  @@map("beneficiaries")
+}
+
+// -----------------------------------------------------------------------------
+// Money: wallets + double-entry ledger
+// -----------------------------------------------------------------------------
+
+model Wallet {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String     @map("user_id") @db.Uuid
+  kind         WalletKind
+  currency     Currency
+  // Materialized balance — every credit/debit ledger entry updates this in
+  // the same transaction. Source of truth is still ledger_entries.
+  balance      Decimal    @default(0) @db.Decimal(20, 4)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledgerEntries LedgerEntry[]
+
+  @@unique([userId, kind, currency])
+  @@map("wallets")
+}
+
+model LedgerEntry {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  walletId      String          @map("wallet_id") @db.Uuid
+  direction     LedgerDirection
+  type          LedgerEntryType
+  amount        Decimal         @db.Decimal(20, 4)
+  currency      Currency
+  // Free-form correlation key so we can group the two sides of a transfer.
+  correlationId String          @map("correlation_id")
+  // FX info — null for same-currency moves.
+  fxRate        Decimal?        @map("fx_rate") @db.Decimal(20, 8)
+  fxSnapshotId  String?         @map("fx_snapshot_id") @db.Uuid
+  metadata      Json?
+  postedAt      DateTime        @default(now()) @map("posted_at")
+
+  wallet        Wallet          @relation(fields: [walletId], references: [id])
+  fxSnapshot    FxRateSnapshot? @relation(fields: [fxSnapshotId], references: [id])
+
+  @@index([walletId, postedAt])
+  @@index([correlationId])
+  @@index([type, postedAt])
+  @@map("ledger_entries")
+}
+
+// -----------------------------------------------------------------------------
+// Remittance
+// -----------------------------------------------------------------------------
+
+model RemittanceCorridor {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceCountry   Country  @map("source_country")
+  sourceCurrency  Currency @map("source_currency")
+  destCountry     Country  @map("dest_country")
+  destCurrency    Currency @map("dest_currency")
+  partnerCode     String   @map("partner_code")
+  feeFixed        Decimal  @map("fee_fixed") @db.Decimal(20, 4)
+  feePercentBps   Int      @map("fee_percent_bps") // basis points, 100 = 1%
+  minAmount       Decimal  @map("min_amount") @db.Decimal(20, 4)
+  maxAmount       Decimal  @map("max_amount") @db.Decimal(20, 4)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  remittances     Remittance[]
+
+  @@unique([sourceCountry, sourceCurrency, destCountry, destCurrency, partnerCode])
+  @@map("remittance_corridors")
+}
+
+model Remittance {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String           @map("user_id") @db.Uuid
+  beneficiaryId   String           @map("beneficiary_id") @db.Uuid
+  corridorId      String           @map("corridor_id") @db.Uuid
+  status          RemittanceStatus @default(CREATED)
+  sourceAmount    Decimal          @map("source_amount") @db.Decimal(20, 4)
+  sourceCurrency  Currency         @map("source_currency")
+  destAmount      Decimal          @map("dest_amount") @db.Decimal(20, 4)
+  destCurrency    Currency         @map("dest_currency")
+  feeAmount       Decimal          @map("fee_amount") @db.Decimal(20, 4)
+  feeCurrency     Currency         @map("fee_currency")
+  fxRate          Decimal          @map("fx_rate") @db.Decimal(20, 8)
+  fxSnapshotId    String?          @map("fx_snapshot_id") @db.Uuid
+  quoteExpiresAt  DateTime         @map("quote_expires_at")
+  partnerRef      String?          @unique @map("partner_ref")
+  failureReason   String?          @map("failure_reason")
+  authorizedAt    DateTime?        @map("authorized_at")
+  submittedAt     DateTime?        @map("submitted_at")
+  settledAt       DateTime?        @map("settled_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  user            User             @relation(fields: [userId], references: [id])
+  beneficiary     Beneficiary      @relation(fields: [beneficiaryId], references: [id])
+  corridor        RemittanceCorridor @relation(fields: [corridorId], references: [id])
+  fxSnapshot      FxRateSnapshot?  @relation(fields: [fxSnapshotId], references: [id])
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("remittances")
+}
+
+// -----------------------------------------------------------------------------
+// FX
+// -----------------------------------------------------------------------------
+
+model FxRateSnapshot {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  baseCurrency  Currency @map("base_currency")
+  quoteCurrency Currency @map("quote_currency")
+  midRate       Decimal  @map("mid_rate") @db.Decimal(20, 8)
+  bidRate       Decimal  @map("bid_rate") @db.Decimal(20, 8)
+  askRate       Decimal  @map("ask_rate") @db.Decimal(20, 8)
+  source        String   // e.g. "openexchangerates", "ecb"
+  capturedAt    DateTime @map("captured_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  ledgerEntries LedgerEntry[]
+  remittances   Remittance[]
+
+  @@unique([baseCurrency, quoteCurrency, capturedAt, source])
+  @@index([baseCurrency, quoteCurrency, capturedAt])
+  @@map("fx_rate_snapshots")
+}
+
+// -----------------------------------------------------------------------------
+// Savings
+// -----------------------------------------------------------------------------
+
+model AutoSavingsRule {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String              @map("user_id") @db.Uuid
+  sourceWalletId  String              @map("source_wallet_id") @db.Uuid
+  targetWalletId  String              @map("target_wallet_id") @db.Uuid
+  trigger         AutoSavingsTrigger
+  percentBps      Int?                @map("percent_bps")
+  fixedAmount     Decimal?            @map("fixed_amount") @db.Decimal(20, 4)
+  fixedCurrency   Currency?           @map("fixed_currency")
+  active          Boolean             @default(true)
+  lastRunAt       DateTime?           @map("last_run_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
+  @@map("auto_savings_rules")
+}
+
+// -----------------------------------------------------------------------------
+// Investments
+// -----------------------------------------------------------------------------
+
+model Fund {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticker          String    @unique
+  name            String
+  manager         String    // e.g. "Dragon Capital", "VinaCapital", "VFM"
+  type            FundType
+  currency        Currency  @default(VND)
+  description     String?
+  minBuyAmount    Decimal   @map("min_buy_amount") @db.Decimal(20, 4)
+  feeEntryBps     Int       @map("fee_entry_bps")
+  feeExitBps      Int       @map("fee_exit_bps")
+  feeMgmtBps      Int       @map("fee_mgmt_bps")
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  navHistory      FundNav[]
+  orders          InvestmentOrder[]
+  holdings        FundHolding[]
+
+  @@map("funds")
+}
+
+model FundNav {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fundId      String   @map("fund_id") @db.Uuid
+  navDate     DateTime @map("nav_date") @db.Date
+  navPerUnit  Decimal  @map("nav_per_unit") @db.Decimal(20, 6)
+  source      String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  fund        Fund     @relation(fields: [fundId], references: [id])
+
+  @@unique([fundId, navDate])
+  @@index([fundId, navDate])
+  @@map("fund_navs")
+}
+
+model InvestmentOrder {
+  id            String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String                @map("user_id") @db.Uuid
+  fundId        String                @map("fund_id") @db.Uuid
+  type          InvestmentOrderType
+  status        InvestmentOrderStatus @default(CREATED)
+  amount        Decimal?              @db.Decimal(20, 4)
+  units         Decimal?              @db.Decimal(20, 6)
+  navPerUnit    Decimal?              @map("nav_per_unit") @db.Decimal(20, 6)
+  feeAmount     Decimal?              @map("fee_amount") @db.Decimal(20, 4)
+  partnerRef    String?               @map("partner_ref")
+  failureReason String?               @map("failure_reason")
+  filledAt      DateTime?             @map("filled_at")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  user          User                  @relation(fields: [userId], references: [id])
+  fund          Fund                  @relation(fields: [fundId], references: [id])
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("investment_orders")
+}
+
+model FundHolding {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  fundId      String   @map("fund_id") @db.Uuid
+  units       Decimal  @default(0) @db.Decimal(20, 6)
+  // Average cost per unit in fund currency. Used for unrealized P&L.
+  avgCost     Decimal  @default(0) @map("avg_cost") @db.Decimal(20, 6)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fund        Fund     @relation(fields: [fundId], references: [id])
+
+  @@unique([userId, fundId])
+  @@map("fund_holdings")
+}
+
+// -----------------------------------------------------------------------------
+// Insurance
+// -----------------------------------------------------------------------------
+
+model InsuranceProduct {
+  id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code            String                   @unique
+  name            String
+  underwriter     String                   // VN-licensed insurer
+  category        InsuranceProductCategory
+  currency        Currency                 @default(VND)
+  coverageAmount  Decimal                  @map("coverage_amount") @db.Decimal(20, 4)
+  monthlyPremium  Decimal                  @map("monthly_premium") @db.Decimal(20, 4)
+  termsUrl        String?                  @map("terms_url")
+  active          Boolean                  @default(true)
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  policies        InsurancePolicy[]
+
+  @@map("insurance_products")
+}
+
+model InsurancePolicy {
+  id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String                @map("user_id") @db.Uuid
+  productId       String                @map("product_id") @db.Uuid
+  beneficiaryId   String                @map("beneficiary_id") @db.Uuid
+  status          InsurancePolicyStatus @default(QUOTED)
+  policyNumber    String?               @unique @map("policy_number")
+  startsAt        DateTime?             @map("starts_at") @db.Date
+  endsAt          DateTime?             @map("ends_at") @db.Date
+  nextPremiumDueAt DateTime?            @map("next_premium_due_at") @db.Date
+  totalPremiumPaid Decimal              @default(0) @map("total_premium_paid") @db.Decimal(20, 4)
+  cancellationReason String?            @map("cancellation_reason")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  user            User                  @relation(fields: [userId], references: [id])
+  product         InsuranceProduct      @relation(fields: [productId], references: [id])
+  beneficiary     Beneficiary           @relation(fields: [beneficiaryId], references: [id])
+
+  @@index([userId, status])
+  @@map("insurance_policies")
+}
+
+// -----------------------------------------------------------------------------
+// Notifications + audit
+// -----------------------------------------------------------------------------
+
+model Notification {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String              @map("user_id") @db.Uuid
+  channel     NotificationChannel
+  status      NotificationStatus  @default(PENDING)
+  templateKey String              @map("template_key")
+  payload     Json
+  providerRef String?             @map("provider_ref")
+  error       String?
+  sentAt      DateTime?           @map("sent_at")
+  deliveredAt DateTime?           @map("delivered_at")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("notifications")
+}
+
+model AuditEvent {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String?  @map("user_id") @db.Uuid
+  actorType     String   @map("actor_type") // "user", "system", "admin"
+  action        String   // e.g. "remittance.created", "auth.login"
+  entityType    String?  @map("entity_type")
+  entityId      String?  @map("entity_id") @db.Uuid
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  correlationId String?  @map("correlation_id")
+  payload       Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user          User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_events")
+}

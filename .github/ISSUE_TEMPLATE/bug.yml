@@ -1,0 +1,47 @@
+name: Bug report
+description: Something is broken in production or a non-prod env.
+labels: ["bug", "triage"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: env
+    attributes:
+      label: Environment
+      options: [production, staging, dev, local]
+    validations:
+      required: true
+  - type: input
+    id: correlation-id
+    attributes:
+      label: Correlation ID (if known)
+  - type: checkboxes
+    id: severity
+    attributes:
+      label: Severity signals
+      options:
+        - label: Money movement affected
+        - label: Customer-facing
+        - label: Auth / security related
+        - label: Data integrity at risk

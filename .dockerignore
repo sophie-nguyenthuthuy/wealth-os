@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/build
+**/.turbo
+**/.next
+**/coverage
+**/.git
+**/.env
+**/.env.local
+**/*.log
+**/.DS_Store
+**/Dockerfile
+**/.dockerignore
+README.md
+docs/
+.github/

@@ -1,0 +1,9 @@
+# Default owners — every change requires platform team review.
+*                                @wealth-os/platform
+
+# Compliance-sensitive surfaces require an extra sign-off from compliance.
+apps/api/src/auth/                @wealth-os/platform @wealth-os/compliance
+apps/api/src/remittance/          @wealth-os/platform @wealth-os/compliance
+apps/api/src/insurance/           @wealth-os/platform @wealth-os/compliance
+docs/COMPLIANCE.md                @wealth-os/compliance
+packages/database/prisma/         @wealth-os/platform @wealth-os/data
