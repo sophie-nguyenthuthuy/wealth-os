@@ -4,7 +4,7 @@
   "private": true,
   "description": "Financial OS for Vietnamese migrant workers in JP/KR/TW",
   "engines": {
-    "node": ">=20.10.0",
+    "node": ">=26.1.0",
     "pnpm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.12.0",

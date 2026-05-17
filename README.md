@@ -37,7 +37,7 @@ The API is the only fully implemented app in this scaffold. Mobile and admin are
 
 ## Quick start
 
-Prerequisites: Node.js 20.x, pnpm 9.x, Docker.
+Prerequisites: Node.js 26.x, pnpm 9.x, Docker.
 
 ```bash
 # 1. Install
@@ -62,7 +62,7 @@ API will be live at `http://localhost:3000` with Swagger UI at `/docs`.
 
 | Layer         | Choice                              | Why                                     |
 | ------------- | ----------------------------------- | --------------------------------------- |
-| Runtime       | Node.js 20 LTS                      | Long-term support through 2026          |
+| Runtime       | Node.js 26 LTS                      | Current LTS line                        |
 | Language      | TypeScript 5.x (strict)             | Type safety at finance scale            |
 | API framework | NestJS 10                           | Module isolation, DI, mature ecosystem  |
 | ORM           | Prisma 5                            | Type-safe migrations, Decimal for money |

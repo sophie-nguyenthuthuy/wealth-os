@@ -3,11 +3,11 @@
 # =============================================================================
 
 # ---- Stage 1: builder (install + generate + compile) ----
-FROM node:20.11-alpine AS builder
+FROM node:26.1-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /repo
 
-RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
+RUN npm install -g pnpm@9.12.0
 
 # Bring the whole repo in first; .dockerignore excludes node_modules / dist.
 COPY . .
@@ -35,7 +35,7 @@ RUN cd /deploy && \
       --schema=node_modules/@wealth-os/database/prisma/schema.prisma
 
 # ---- Stage 2: production runner ----
-FROM node:20.11-alpine AS runner
+FROM node:26.1-alpine AS runner
 RUN apk add --no-cache libc6-compat openssl tini
 WORKDIR /app
 
