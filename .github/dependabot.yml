@@ -12,6 +12,22 @@ updates:
         patterns: ["prisma", "@prisma/*"]
       types:
         patterns: ["@types/*"]
+      typescript-eslint:
+        patterns: ["@typescript-eslint/*"]
+    # Major framework bumps are tracked as dedicated migration PRs, not via
+    # automated bumps. Dependabot will still surface minor + patch bumps for
+    # these packages.
+    ignore:
+      - dependency-name: "@nestjs/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "prisma"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@prisma/*"
+        update-types: ["version-update:semver-major"]
+      # ESLint 9 introduced flat-config which requires a coordinated migration
+      # of the eslintrc + plugin ecosystem; tracked separately.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -20,3 +36,9 @@ updates:
     directory: "/apps/api"
     schedule:
       interval: "monthly"
+    # Don't auto-bump Node major — that change ripples through engines,
+    # .nvmrc, CI NODE_VERSION, @types/node, Dockerfile base image, and docs.
+    # Treat Node major as a manual coordinated upgrade.
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
