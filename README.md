@@ -108,4 +108,10 @@ We do **not** custody host-country funds directly until licensed. Until then, re
 
 ## License
 
-Proprietary. All rights reserved.
+Source-available under the [Business Source License 1.1](LICENSE). Free for
+non-production use, internal use, evaluation, research, education, and
+contributions. Production use as a competing remittance / wallet / investment
+/ insurance service requires a commercial license — contact the Licensor.
+
+On **2030-05-18** (the BSL Change Date), this version of the work converts
+automatically to the Apache License 2.0.
