@@ -3,7 +3,7 @@
 # =============================================================================
 
 # ---- Stage 1: builder (install + generate + compile) ----
-FROM node:26.1-alpine AS builder
+FROM node:26.3-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /repo
 
@@ -35,7 +35,7 @@ RUN cd /deploy && \
       --schema=node_modules/@wealth-os/database/prisma/schema.prisma
 
 # ---- Stage 2: production runner ----
-FROM node:26.1-alpine AS runner
+FROM node:26.3-alpine AS runner
 RUN apk add --no-cache libc6-compat openssl tini
 WORKDIR /app
 
