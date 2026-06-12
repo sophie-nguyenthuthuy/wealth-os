@@ -1,0 +1,7 @@
+services:
+  postgres:
+    ports: !override
+      - '55444:5432'
+  redis:
+    ports: !override
+      - '56387:6379'
